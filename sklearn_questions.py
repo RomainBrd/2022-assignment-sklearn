@@ -49,6 +49,7 @@ to compute distances between 2 sets of samples.
 """
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 from sklearn.base import BaseEstimator
 from sklearn.base import ClassifierMixin
@@ -82,6 +83,11 @@ class KNearestNeighbors(BaseEstimator, ClassifierMixin):
         self : instance of KNearestNeighbors
             The current instance of the classifier
         """
+        
+        self.X_train = X
+        self.y_train = y
+        self.classes = np.unique(y)
+
         return self
 
     def predict(self, X):
@@ -97,7 +103,14 @@ class KNearestNeighbors(BaseEstimator, ClassifierMixin):
         y : ndarray, shape (n_test_samples,)
             Predicted class labels for each test data sample.
         """
-        y_pred = np.zeros(X.shape[0])
+
+        dist = pairwise_distances(X,self.X_train , metric='euclidean')
+        sort_samples = np.argsort(dist,axis=1)
+        mask = sort_samples[:,:self.n_neighbors]
+        classes = self.y_train[mask]
+        
+        y_pred = stats.mode(classes, keepdims=False, axis = 1)[0].ravel()
+        
         return y_pred
 
     def score(self, X, y):
@@ -115,7 +128,7 @@ class KNearestNeighbors(BaseEstimator, ClassifierMixin):
         score : float
             Accuracy of the model computed for the (X, y) pairs.
         """
-        return 0.
+        return np.mean(self.predict(X) == y)
 
 
 class MonthlySplit(BaseCrossValidator):
